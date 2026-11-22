@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FB Video Downloader</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-2: #334155;
+    --accent: #1877f2;
+    --accent-2: #42a5f5;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1e3a8a 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .logo {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: white;
+    font-weight: 700;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .header p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .input-group {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 48px 14px 16px;
+    color: var(--text);
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .paste-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .paste-btn:hover { color: var(--text); }
+
+  .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result {
+    margin-top: 20px;
+    display: none;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .result.show { display: block; }
+
+  .result-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .result-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .result-info {
+    padding: 16px;
+  }
+
+  .result-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .result-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .quality-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quality-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .quality-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .quality-badge {
+    background: rgba(24,119,242,0.15);
+    color: var(--accent-2);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .download-btn {
+    background: var(--success);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .download-btn:hover { opacity: 0.9; }
+
+  .history {
+    margin-top: 24px;
+  }
+
+  .history h3 {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--card-2);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .history-item:hover { background: #3f5269; }
+
+  .history-thumb {
+    width: 60px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #000;
+    flex-shrink: 0;
+  }
+
+  .history-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .history-title {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-date {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 20px;
+  }
+
+  .note {
+    margin-top: 20px;
+    padding: 14px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #fecaca;
+  }
+
+  .note strong { color: #fca5a5; }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    transition: transform 0.3s;
+    z-index: 100;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="logo">f</div>
+      <div>
+        <h1>FB Video Downloader</h1>
+        <p>Paste a Facebook video URL to get download links</p>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="https://www.facebook.com/watch?v=..." />
+      <button class="paste-btn" id="pasteBtn" title="Paste">Paste</button>
+    </div>
+
+    <button class="btn-primary" id="fetchBtn">Get Download Links</button>
+
+    <div class="result" id="result">
+      <div class="result-thumb">
+        <img id="thumb" alt="" />
+      </div>
+      <div class="result-info">
+        <div class="result-title" id="title">Video title</div>
+        <div class="result-meta" id="meta">— • —</div>
+        <div class="quality-list" id="qualityList"></div>
+      </div>
+    </div>
+
+    <div class="history">
+      <h3>Recent</h3>
+      <div id="historyList"></div>
+    </div>
+
+    <div class="note">
+      <strong>Note:</strong> A pure HTML file cannot fetch Facebook videos directly due to browser CORS and Facebook's authentication. To make this work for real, point it at a backend API (set <code>API_BASE</code> in the script below) that returns the video's direct MP4 URLs. The app currently runs in <strong>demo mode</strong> using sample data so you can see the UI in action.
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  // --- CONFIG ---------------------------------------------------------
+  // Set this to your backend endpoint that resolves FB video URLs.
+  // Expected JSON response:
+  // {
+  //   title: "...",
+  //   thumbnail: "https://...",
+  //   author: "...",
+  //   duration: "1:23",
+  //   formats: [
+  //     { quality: "HD", type: "video", url: "https://...mp4" },
+  //     { quality: "SD", type: "video", url: "https://...mp4" },
+  //     { quality: "Audio", type: "audio", url: "https://...mp3" }
+  //   ]
+  // }
+  const API_BASE = ""; // e.g. "https://your-backend.com/api/fetch"
+
+  // --- DOM ------------------------------------------------------------
+  const urlInput = document.getElementById("urlInput");
+  const pasteBtn = document.getElementById("pasteBtn");
+  const fetchBtn = document.getElementById("fetchBtn");
+  const result = document.getElementById("result");
+  const thumb = document.getElementById("thumb");
+  const titleEl = document.getElementById("title");
+  const metaEl = document.getElementById("meta");
+  const qualityList = document.getElementById("qualityList");
+  const historyList = document.getElementById("historyList");
+  const toast = document.getElementById("toast");
+
+  // --- HELPERS --------------------------------------------------------
+  function showToast(msg, type = "") {
+    toast.textContent = msg;
+    toast.className = "toast show " + type;
+    setTimeout(() => toast.classList.remove("show"), 2500);
+  }
+
+  function isValidFbUrl(url) {
+    return /^https?:\/\/(www\.|web\.|m\.)?(facebook|fb)\.com\//i.test(url.trim());
+  }
+
+  // --- DEMO DATA (used when no backend is configured) -----------------
+  function getDemoData(url) {
+    return {
+      title: "Sample Facebook Video",
+      thumbnail: "https://via.placeholder.com/640x360/1877f2/ffffff?text=FB+Video",
+      author: "Demo Page",
+      duration: "2:45",
+      formats: [
+        { quality: "HD 1080p", type: "video", url: "#" },
+        { quality: "HD 720p", type: "video", url: "#" },
+        { quality: "SD 480p", type: "video", url: "#" },
+        { quality: "Audio MP3", type: "audio", url: "#" }
+      ]
+    };
+  }
+
+  // --- HISTORY --------------------------------------------------------
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem("fb_history") || "[]");
+    } catch { return []; }
+  }
+
+  function saveHistory(item) {
+    const list = loadHistory().filter(h => h.url !== item.url);
+    list.unshift(item);
+    localStorage.setItem("fb_history", JSON.stringify(list.slice(0, 5)));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = loadHistory();
+    historyList.innerHTML = "";
+    if (list.length === 0) {
+      historyList.innerHTML = '<div class="empty">No downloads yet</div>';
+      return;
+    }
+    list.forEach(h => {
+      const div = document.createElement("div");
+      div.className = "history-item";
+      div.innerHTML = `
+        <img class="history-thumb" src="${h.thumbnail}" alt="" />
+        <div class="history-text">
+          <div class="history-title">${h.title}</div>
+          <div class="history-date">${h.date}</div>
+        </div>
+      `;
+      div.onclick = () => {
+        urlInput.value = h.url;
+        fetchVideo();
+      };
+      historyList.appendChild(div);
+    });
+  }
+
+  // --- FETCH -----------------------------------------------------------
+  async function fetchVideo() {
+    const url = urlInput.value.trim();
+    if (!url) {
+      showToast("Please paste a video URL", "error");
+      return;
+    }
+    if (!isValidFbUrl(url)) {
+      showToast("That doesn't look like a Facebook URL", "error");
+      return;
+    }
+
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = '<span class="spinner"></span>Fetching...';
+    result.classList.remove("show");
+
+    try {
+      let data;
+      if (API_BASE) {
+        const res = await fetch(`${API_BASE}?url=${encodeURIComponent(url)}`);
+        if (!res.ok) throw new Error("Backend error " + res.status);
+        data = await res.json();
+      } else {
+        // Demo mode
+        await new Promise(r => setTimeout(r, 1200));
+        data = getDemoData(url);
+      }
+
+      renderResult(data, url);
+      saveHistory({
+        url,
+        title: data.title,
+        thumbnail: data.thumbnail,
+        date: new Date().toLocaleString()
+      });
+      showToast("Links ready!", "success");
+    } catch (err) {
+      showToast("Failed: " + err.message, "error");
+    } finally {
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = "Get Download Links";
+    }
+  }
+
+  function renderResult(data, url) {
+    thumb.src = data.thumbnail;
+    titleEl.textContent = data.title;
+    metaEl.textContent = `${data.author} • ${data.duration}`;
+    qualityList.innerHTML = "";
+
+    data.formats.forEach(f => {
+      const item = document.createElement("div");
+      item.className = "quality-item";
+      item.innerHTML = `
+        <div class="quality-label">
+          <span class="quality-badge">${f.type === "audio" ? "MP3" : "MP4"}</span>
+          ${f.quality}
+        </div>
+        <button class="download-btn">Download</button>
+      `;
+      item.querySelector(".download-btn").onclick = () => {
+        if (f.url === "#") {
+          showToast("Demo mode - set API_BASE to enable real downloads", "error");
+          return;
+        }
+        const a = document.createElement("a");
+        a.href = f.url;
+        a.download = "";
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+      qualityList.appendChild(item);
+    });
+
+    result.classList.add("show");
+  }
+
+  // --- EVENTS ----------------------------------------------------------
+  fetchBtn.addEventListener("click", fetchVideo);
+  urlInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") fetchVideo();
+  });
+
+  pasteBtn.addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      urlInput.value = text;
+      urlInput.focus();
+    } catch {
+      showToast("Clipboard blocked - paste manually", "error");
+    }
+  });
+
+  renderHistory();
+</script>
+</body>
+</html>
